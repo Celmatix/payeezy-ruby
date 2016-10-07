@@ -9,10 +9,10 @@ require 'securerandom'
 module Payeezy
   class Transactions
     def initialize(options = {})
-      @url = options[:url]
-      @apikey = options[:apikey]
-      @apisecret = options[:apisecret]
-      @token = options[:token]
+      @url = options[:url] || options["url"]
+      @apikey = options[:apikey] || options["apikey"]
+      @apisecret = options[:apisecret] || options["apisecret"]
+      @token = options[:token] || options["token"]
     end
 
     def transact(action, payload)
@@ -44,7 +44,7 @@ module Payeezy
 
     def commit(action, params)
       url = @url
-      if action == :capture || action == :void || action == :refund || action == :split
+      if [Actions::CAPTURE, Actions::VOID, Actions::REFUND, Actions::SPLIT].include?(action)
         url = url + '/' + params[:transaction_id]
         params.delete(:transaction_id)
       end
