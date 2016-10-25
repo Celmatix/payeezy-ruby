@@ -133,6 +133,43 @@ describe "Sample calls to Payeezy" do
     end
   end
 
+  describe "With errors" do
+    context "when there is a connection error" do
+      let(:rest_conn) { double(:rest_connection) }
+      before do
+        allow(RestClient::Resource).to receive(:new).and_return(rest_conn)
+        allow(rest_conn).to receive(:post).and_raise(SocketError)
+      end
+
+      subject { @payeezy.transact(:purchase, primary_tx_payload) }
+
+      it "should return an internal error response" do
+        expect(subject).to be_a_kind_of(Payeezy::InternalErrorResponse)
+      end
+
+      it "should not be successful" do
+        expect(subject.success?).to eq false
+      end
+
+      it "should have errors" do
+        expect(subject.errors).to_not be_empty
+      end
+
+      it "should be an internal error" do
+        expect(subject.internal_error?).to eq true
+      end
+
+      it "should not be any other kind of error" do
+        expect(subject.bank_error?).to eq false
+        expect(subject.parser_error?).to eq false
+      end
+
+      it "should have errors with codes" do
+        expect(subject.errors.first).to respond_to(:err_code)
+      end
+    end
+  end
+
   def tokenize_tx_payload
     credit_card = {}
     payload = {}

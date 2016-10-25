@@ -53,7 +53,12 @@ module Payeezy
     end
 
     def bank_error?
+      return false if bank_response.nil?
       !bank_response.success?
+    end
+
+    def internal_error?
+      self.is_a?(InternalErrorResponse)
     end
 
     private

@@ -59,11 +59,14 @@ module Payeezy
         raw_response = rest_resource.post data, headers
         response = Payeezy::Response.new(raw_response)
       rescue => e
-        raw_response = e.response
-        response = response_error(raw_response)
-        response = Payeezy::Response.new(raw_response)
-      rescue JSON::ParserError
-        response = json_error(raw_response)
+        if e.respond_to?(:response)
+          response = response_error(e.response)
+          response = Payeezy::Response.new(response)
+        else
+          response = Payeezy::InternalErrorResponse.new(e)
+        end
+      rescue JSON::ParserError => e
+        response = Payeezy::InternalErrorResponse.new(e)
       end
 
       response
