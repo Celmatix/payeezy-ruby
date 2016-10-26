@@ -134,6 +134,7 @@ module Payeezy
           yield
         end
         @@logging_proc.call(<<-LOG)
+
         ============= PAYEEZY TRANSACTION LOG ==============
         METHOD: POST
         URL:    #{url}
