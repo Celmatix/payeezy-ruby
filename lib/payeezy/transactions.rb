@@ -5,9 +5,26 @@ require 'json'
 require 'digest/sha2'
 require 'base64'
 require 'securerandom'
+require 'benchmark'
 
 module Payeezy
   class Transactions
+    @@log_transaction_time = false
+    @@logging_proc = nil
+
+    # Class methods
+    def self.transaction_time_logging_on!(&block)
+      @@log_transaction_time = true
+      @@logging_proc = block
+    end
+
+    def self.transaction_time_logging_off!
+      @@log_transaction_time = false
+      @@logging_proc = nil
+    end
+
+    # Object methods
+
     def initialize(options = {})
       @url = options[:url] || options["url"]
       @apikey = options[:apikey] || options["apikey"]
@@ -56,8 +73,10 @@ module Payeezy
       rest_resource = RestClient::Resource.new(url)
       raw_response = response = {}
       begin
-        raw_response = rest_resource.post data, headers
-        response = Payeezy::Response.new(raw_response)
+        do_logged_transaction(url) do
+          raw_response = rest_resource.post data, headers
+          response = Payeezy::Response.new(raw_response)
+        end
       rescue => e
         if e.respond_to?(:response)
           response = response_error(e.response)
@@ -105,6 +124,25 @@ module Payeezy
               'messages' => msg
           }
       }
+    end
+
+    private
+
+    def do_logged_transaction(url)
+      if @@log_transaction_time
+        time = Benchmark.measure do
+          yield
+        end
+        @@logging_proc.call(<<-LOG)
+        ============= PAYEEZY TRANSACTION LOG ==============
+        METHOD: POST
+        URL:    #{url}
+        TIME:   #{time}
+        ====================================================
+        LOG
+      else
+        yield
+      end
     end
   end
 end
