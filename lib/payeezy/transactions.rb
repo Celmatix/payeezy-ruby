@@ -79,8 +79,7 @@ module Payeezy
         end
       rescue => e
         if e.respond_to?(:response)
-          response = response_error(e.response)
-          response = Payeezy::Response.new(response)
+          response = Payeezy::Response.new(e.response)
         else
           response = Payeezy::InternalErrorResponse.new(e)
         end

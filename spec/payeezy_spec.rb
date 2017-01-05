@@ -48,7 +48,7 @@ describe "Sample calls to Payeezy" do
       expect(@primary_response.success?).to eq true
       @secondary_response = @payeezy.transact(:capture,secondary_tx_payload(@primary_response))
       @secondary_response['transaction_status'].should == "approved"
-      expect(@secondary.success?).to eq true
+      expect(@secondary_response.success?).to eq true
     end
 
     it 'Void Transaction' do
@@ -134,10 +134,11 @@ describe "Sample calls to Payeezy" do
   end
 
   describe "With errors" do
+    let(:rest_conn) { double(:rest_connection) }
+    before { allow(RestClient::Resource).to receive(:new).and_return(rest_conn) }
+
     context "when there is a connection error" do
-      let(:rest_conn) { double(:rest_connection) }
       before do
-        allow(RestClient::Resource).to receive(:new).and_return(rest_conn)
         allow(rest_conn).to receive(:post).and_raise(SocketError)
       end
 
@@ -166,6 +167,23 @@ describe "Sample calls to Payeezy" do
 
       it "should have errors with codes" do
         expect(subject.errors.first).to respond_to(:err_code)
+      end
+    end
+
+    context "when there is a payment error" do
+      before do
+        allow_any_instance_of(Exception).to receive(:response).and_return({ Error: { messages: [{ code: "999", description: "oops" }] }, bank_resp_code: "0", bank_message: "bad" }.to_json)
+        allow(rest_conn).to receive(:post).and_raise
+      end
+
+      subject { @payeezy.transact(:purchase, primary_tx_payload) }
+
+      it "should return a response" do
+        expect(subject).to be_a_kind_of(Payeezy::Response)
+      end
+
+      it "should have errors" do
+        expect(subject.errors).to_not be_empty
       end
     end
   end
