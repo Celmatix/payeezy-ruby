@@ -186,6 +186,50 @@ describe "Sample calls to Payeezy" do
         expect(subject.errors).to_not be_empty
       end
     end
+
+    context "when there is a declide transaction_status" do
+      let(:post_resp) { {
+        "correlation_id"=>"232.1485449115560",
+        "transaction_status"=>"declined",
+        "validation_status"=>"success",
+        "transaction_type"=>"purchase",
+        "transaction_id"=>"064511",
+        "transaction_tag"=>"1757980006",
+        "method"=>"credit_card",
+        "amount"=>"129", "currency"=>"USD", "avs"=>"A",
+        "token"=>{
+          "token_type"=>"FDToken", "token_data"=>{
+            "value"=>"0837834645246003"
+          }
+        },
+        "bank_resp_code"=>"100",
+        "bank_message"=>"Approved",
+        "card"=>{
+          "type"=>"visa", "cardholder_name"=>"Pierre Davidoff",
+          "card_number"=>"6003", "exp_date"=>"0319"
+        },
+        "gateway_resp_code"=>"44", "gateway_message"=>"Address not Verified"
+      }.to_json }
+
+      before do
+        allow(rest_conn).to receive(:post).with(any_args).and_return(post_resp)
+      end
+
+      subject { @payeezy.transact(:purchase, primary_tx_payload) }
+
+      it "should not be successful" do
+        expect(subject).to_not be_success
+      end
+
+      it "should have non-success gateway status" do
+        expect(subject.gateway_response).to_not be_success
+      end
+
+      it "should provide errors from the gateway" do
+        expect(subject.errors).to_not be_empty
+        expect(subject.errors.first.description).to eq "Address not Verified"
+      end
+    end
   end
 
   def tokenize_tx_payload

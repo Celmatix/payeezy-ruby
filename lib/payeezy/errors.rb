@@ -8,6 +8,9 @@ module Payeezy
   class BankError < Error.new(:code, :description)
   end
 
+  class GatewayError < Error.new(:code, :description)
+  end
+
   class InternalError < Error.new(:err)
     def err_code
       case err

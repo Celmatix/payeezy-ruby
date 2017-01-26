@@ -11,7 +11,7 @@ module Payeezy
       :amount, :currency, :cvv2, :token, :card,
       :gateway_resp_code, :gateway_message,
 
-      :bank_response,
+      :bank_response, :gateway_response,
 
       :errors,
 
@@ -41,7 +41,7 @@ module Payeezy
     end
 
     def success?
-      !parser_error? && !validation_error? && bank_response.success?
+      !parser_error? && !validation_error? && !transaction_error?
     end
 
     def parser_error?
@@ -50,6 +50,10 @@ module Payeezy
 
     def validation_error?
       validation_status != STATUS_SUCCESS
+    end
+
+    def transaction_error?
+      transaction_status != STATUS_APPROVED
     end
 
     def bank_error?
@@ -64,13 +68,15 @@ module Payeezy
     private
 
     def process_response
-      raw = @raw_response
+      raw = @raw_response.dup
       if raw["bank_resp_code"]
         self.bank_response = Payeezy::BankResponse.new(
-          raw.delete("bank_resp_code"),
-          raw.delete("bank_message")
+          raw["bank_resp_code"],
+          raw["bank_message"]
         )
       end
+
+      self.gateway_response = Payeezy::GatewayResponse.new(raw["gateway_resp_code"], raw["gateway_message"])
 
       raw.each do |key, value|
         case key
@@ -84,6 +90,8 @@ module Payeezy
           instance_variable_set(:"@#{key.downcase}", value)
         end
       end
+
+      @errors << gateway_response.error unless gateway_response.success?
     end
   end
 end
