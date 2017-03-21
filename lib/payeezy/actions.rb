@@ -6,5 +6,6 @@ module Payeezy
     VOID         = :void
     AUTHORIZE    = :authorize
     PURCHASE     = :purchase
+    RECURRING    = :recurring
   end
 end
